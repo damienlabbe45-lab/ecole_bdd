@@ -19,7 +19,17 @@ class CourseDao(Dao[Course]):
         :return: l'id de l'entité insérée en BD (0 si la création a échoué)
         """
         ...
+        id_course: int
+        try:
+            with Dao.connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO course (name, start_date, end_date) VALUES (%s)",
+                    (Course.name, Course.start_date, Course.end_date))
+                id_course = cursor.lastrowid()
+        except Exception:
+            id_course = 0
 
+        return id_course
 
     def read(self, id_course: int) -> Optional[Course]:
         """Renvoit le cours correspondant à l'entité dont l'id est id_course
