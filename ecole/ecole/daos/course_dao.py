@@ -19,7 +19,7 @@ class CourseDao(Dao[Course]):
         :return: l'id de l'entité insérée en BD (0 si la création a échoué)
         """
         ...
-        return 0
+
 
     def read(self, id_course: int) -> Optional[Course]:
         """Renvoit le cours correspondant à l'entité dont l'id est id_course
@@ -27,8 +27,7 @@ class CourseDao(Dao[Course]):
         course: Optional[Course]
         
         with Dao.connection.cursor() as cursor:
-            sql = "SELECT * FROM course WHERE id_course=%s"
-            cursor.execute(sql, (id_course,))
+            cursor.execute("SELECT * FROM course WHERE id_course=%s", (id_course,))
             record = cursor.fetchone()
         if record is not None:
             course = Course(record['name'], record['start_date'], record['end_date'])
