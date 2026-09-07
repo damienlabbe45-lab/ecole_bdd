@@ -57,14 +57,14 @@ class CourseDao(Dao[Course]):
         ...
         try:
             with Dao.connection.cursor() as cursor:
-                if Course.teacher is not None:
+                if course.teacher is not None:
                     cursor.execute(
                         "UPDATE course SET name=%s, start_date=%s, end_date=%s, id_teacher= %s WHERE id_course=%s",
-                        Course.name, Course.start_date, Course.end_date, Course.teacher.id)
+                        course.name, course.start_date, course.end_date, course.teacher.id)
                 else:
                     cursor.execute(
                         "UPDATE course SET name=%s, start_date=%s, end_date=%s WHERE id_course=%s",
-                        Course.name, Course.start_date, Course.end_date)
+                        course.name, course.start_date, course.end_date)
             return True
         except Exception as e:
             print(e)
