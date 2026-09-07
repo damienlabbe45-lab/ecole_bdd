@@ -24,7 +24,7 @@ class CourseDao(Dao[Course]):
             with Dao.connection.cursor() as cursor:
                 cursor.execute(
                     "INSERT INTO course (name, start_date, end_date) VALUES (%s)",
-                    (Course.name, Course.start_date, Course.end_date))
+                    (course.name, course.start_date, course.end_date))
                 id_course = cursor.lastrowid()
         except Exception as e:
             print(e)
