@@ -57,13 +57,13 @@ class School:
         """Initialisation d'un jeu de test pour l'école."""
         
         # création des étudiants et rattachement à leur adresse
-        paul: Student    = Student('Paul', 'Dubois', 12)
+        paul: Student = Student('Paul', 'Dubois', 12)
         valerie: Student = Student('Valérie', 'Dumont', 13)
-        louis: Student   = Student('Louis', 'Berthot', 11)
+        louis: Student = Student('Louis', 'Berthot', 11)
 
-        paul.address    = Address('12 rue des Pinsons', 'Castanet', 31320)
+        paul.address = Address('12 rue des Pinsons', 'Castanet', 31320)
         valerie.address = Address('43 avenue Jean Zay', 'Toulouse', 31200)
-        louis.address   = Address('7 impasse des Coteaux', 'Cornebarrieu', 31150)
+        louis.address = Address('7 impasse des Coteaux', 'Cornebarrieu', 31150)
 
         # ajout de ceux-ci à l'école
         for student in [paul, valerie, louis]:
@@ -93,12 +93,12 @@ class School:
             self.add_course(course)
 
         # création des enseignants
-        victor  = Teacher('Victor', 'Hugo', 23, date(2023, 9, 4))
-        jules   = Teacher('Jules', 'Michelet', 32, date(2023, 9, 4))
-        sophie  = Teacher('Sophie', 'Germain', 25, date(2023, 9, 4))
-        marie   = Teacher('Marie', 'Curie', 31, date(2023, 9, 4))
+        victor = Teacher('Victor', 'Hugo', 23, date(2023, 9, 4))
+        jules = Teacher('Jules', 'Michelet', 32, date(2023, 9, 4))
+        sophie = Teacher('Sophie', 'Germain', 25, date(2023, 9, 4))
+        marie = Teacher('Marie', 'Curie', 31, date(2023, 9, 4))
         william = Teacher('William', 'Shakespeare', 34, date(2023, 9, 4))
-        michel  = Teacher('Michel', 'Platini', 42, date(2023, 9, 4))
+        michel = Teacher('Michel', 'Platini', 42, date(2023, 9, 4))
 
         # ajout de ceux-ci à l'école
         for teacher in [victor, jules, sophie, marie, william, michel]:
