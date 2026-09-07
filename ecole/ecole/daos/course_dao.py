@@ -26,7 +26,8 @@ class CourseDao(Dao[Course]):
                     "INSERT INTO course (name, start_date, end_date) VALUES (%s)",
                     (Course.name, Course.start_date, Course.end_date))
                 id_course = cursor.lastrowid()
-        except Exception:
+        except Exception as e:
+            print(e)
             id_course = 0
 
         return id_course
@@ -54,6 +55,7 @@ class CourseDao(Dao[Course]):
         :return: True si la mise à jour a pu être réalisée
         """
         ...
+
         return True
 
     def delete(self, course: Course) -> bool:
