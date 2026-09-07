@@ -55,8 +55,20 @@ class CourseDao(Dao[Course]):
         :return: True si la mise à jour a pu être réalisée
         """
         ...
-
-        return True
+        try:
+            with Dao.connection.cursor() as cursor:
+                if Course.teacher is not None:
+                    cursor.execute(
+                        "UPDATE course SET name=%s, start_date=%s, end_date=%s, id_teacher= %s WHERE id_course=%s",
+                        Course.name, Course.start_date, Course.end_date, Course.teacher.id)
+                else:
+                    cursor.execute(
+                        "UPDATE course SET name=%s, start_date=%s, end_date=%s WHERE id_course=%s",
+                        Course.name, Course.start_date, Course.end_date)
+            return True
+        except Exception as e:
+            print(e)
+            return False
 
     def delete(self, course: Course) -> bool:
         """Supprime en BD l'entité Course correspondant à course
