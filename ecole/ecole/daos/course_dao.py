@@ -77,4 +77,10 @@ class CourseDao(Dao[Course]):
         :return: True si la suppression a pu être réalisée
         """
         ...
-        return True
+        try:
+            with Dao.connection.cursor() as cursor:
+                cursor.execute("DELETE FROM course WHERE id_course=%s", (course.id,))
+            return True
+        except Exception as e:
+            print(e)
+            return False
