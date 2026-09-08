@@ -142,28 +142,3 @@ class StudentDao(Dao[Student]):
         except Exception as e:
             print(e)
             return False
-
-    def delete(self, student: Student) -> bool:
-        """Supprime en BD l'entité Student correspondant à student"""
-        try:
-            with Dao.connection.cursor() as cursor:
-                cursor.execute(
-                    """
-                    SELECT p.id_person, p.id_address 
-                    FROM person p 
-                    JOIN student s ON p.id_person = s.id_person 
-                    WHERE s.student_nbr = %s
-                    """,
-                    (student.student_nbr,)
-                )
-                record = cursor.fetchone()
-
-                cursor.execute("DELETE FROM takes WHERE student_nbr=%s", (student.student_nbr,))
-                cursor.execute("DELETE FROM student WHERE student_nbr=%s", (student.student_nbr,))
-                cursor.execute("DELETE FROM person WHERE id_person=%s", (record["id_person"],))
-                cursor.execute("DELETE FROM address WHERE id_address=%s", (record["id_address"],))
-                Dao.connection.commit()
-            return True
-        except Exception as e:
-            print(e)
-            return False
