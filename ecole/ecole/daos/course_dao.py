@@ -23,7 +23,7 @@ class CourseDao(Dao[Course]):
         try:
             with Dao.connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO course (name, start_date, end_date, id_teacher) VALUES (%s, %s, %s, %s)",
+                    "INSERT IGNORE INTO course (name, start_date, end_date, id_teacher) VALUES (%s, %s, %s, %s)",
                     (course.name, course.start_date, course.end_date, teacher_id))
                 id_course = cursor.lastrowid()
                 course.id = id_course

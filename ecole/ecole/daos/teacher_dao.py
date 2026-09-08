@@ -22,14 +22,14 @@ class TeacherDao(Dao[Teacher]):
             with Dao.connection.cursor() as cursor:
                 # 1. Insertion dans person
                 cursor.execute(
-                    "INSERT INTO person (first_name, last_name, age, id_address) VALUES (%s, %s, %s, %s)",
+                    "INSERT IGNORE INTO person (first_name, last_name, age, id_address) VALUES (%s, %s, %s, %s)",
                     (teacher.first_name, teacher.last_name, teacher.age, address_id)
                 )
                 id_person = cursor.lastrowid
 
                 # 2. Insertion dans teacher
                 cursor.execute(
-                    "INSERT INTO teacher (hiring_date, id_person) VALUES (%s, %s)",
+                    "INSERT IGNORE INTO teacher (hiring_date, id_person) VALUES (%s, %s)",
                     (teacher.hiring_date, id_person)
                 )
                 id_teacher = cursor.lastrowid

@@ -18,7 +18,7 @@ class AddressDao(Dao[Address]):
         try:
             with Dao.connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO address (street, city, postal_code) VALUES (%s, %s, %s)",
+                    "INSERT IGNORE INTO address (street, city, postal_code) VALUES (%s, %s, %s)",
                     (address.street, address.city, address.postal_code)
                 )
                 id_address = cursor.lastrowid()
