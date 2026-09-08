@@ -39,51 +39,61 @@ class StudentDao(Dao[Student]):
 
         return id_student
 
-    def read(self, id_student: int) -> Optional[Student]:
+    def read(self, student_nbr: int) -> Optional[Student]:
         student: Optional[Student] = None
 
         with Dao.connection.cursor() as cursor:
-            # Requête unique avec JOIN pour récupérer l'étudiant et son adresse
+            # 1. Récupération des infos de l'étudiant, sa personne et son adresse
             cursor.execute(
                 """
-                SELECT p.*, a.street, a.city, a.postal_code
+                SELECT s.student_nbr, p.first_name, p.last_name, p.age,
+                       a.id_address, a.street, a.city, a.postal_code
                 FROM student s
                 JOIN person p ON s.id_person = p.id_person
                 LEFT JOIN address a ON p.id_address = a.id_address
                 WHERE s.student_nbr = %s
                 """,
-                (id_student,)
+                (student_nbr,)
             )
-            record_person = cursor.fetchone()
+            record = cursor.fetchone()
 
-            if record_person is not None:
+            if record is not None:
                 student = Student(
-                    record_person['first_name'],
-                    record_person['last_name'],
-                    record_person['age']
+                    record['first_name'],
+                    record['last_name'],
+                    record['age']
                 )
-                student.student_nbr = id_student
+                student.id = record['student_nbr']
 
-                if record_person['street'] is not None:
-                    student.address = Address(
-                        record_person['street'],
-                        record_person['city'],
-                        record_person['postal_code']
+                if record['street'] is not None:
+                    address = Address(
+                        record['street'],
+                        record['city'],
+                        record['postal_code']
                     )
+                    address.id = record['id_address']
+                    student.address = address
 
-                # Chargement des cours suivis
+                # 2. Récupération DIRECTE des cours sans repasser par CourseDao().read()
                 cursor.execute(
-                    "SELECT id_course FROM takes WHERE student_nbr=%s",
-                    (id_student,)
+                    """
+                    SELECT c.id_course, c.name, c.start_date, c.end_date
+                    FROM course c
+                    JOIN takes t ON c.id_course = t.id_course
+                    WHERE t.student_nbr = %s
+                    """,
+                    (student_nbr,)
                 )
-                takes_records = cursor.fetchall()
-                if takes_records:
-                    from daos.course_dao import CourseDao
-                    course_dao = CourseDao()
-                    for take in takes_records:
-                        course = course_dao.read(take['id_course'])
-                        if course is not None:
-                            student.add_course(course)
+                from models.course import Course
+                course_records = cursor.fetchall()
+                for c_rec in course_records:
+                    course = Course(
+                        c_rec['name'],
+                        c_rec['start_date'],
+                        c_rec['end_date']
+                    )
+                    course.id = c_rec['id_course']
+                    student.add_course(course)
 
         return student
 
