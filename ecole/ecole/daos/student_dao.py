@@ -73,8 +73,6 @@ class StudentDao(Dao[Student]):
                     )
                     address.id = record['id_address']
                     student.address = address
-
-                # 2. Récupération DIRECTE des cours sans repasser par CourseDao().read()
                 cursor.execute(
                     """
                     SELECT c.id_course, c.name, c.start_date, c.end_date
@@ -152,3 +150,15 @@ class StudentDao(Dao[Student]):
         except Exception as e:
             print(e)
             return False
+
+    def read_all(self) -> list[Student]:
+        """Renvoie tous les étudiants enregistrés en base de données avec leurs cours."""
+        students: list[Student] = []
+        with Dao.connection.cursor() as cursor:
+            cursor.execute("SELECT student_nbr FROM student")
+            records = cursor.fetchall()
+            for record in records:
+                student = self.read(record['student_nbr'])
+                if student is not None:
+                    students.append(student)
+        return students
