@@ -63,7 +63,7 @@ class StudentDao(Dao[Student]):
                     record['last_name'],
                     record['age']
                 )
-                student.id = record['student_nbr']
+                student.student_nbr = record['student_nbr']
 
                 if record['street'] is not None:
                     address = Address(
