@@ -43,8 +43,9 @@ Bienvenue dans notre école
             print("Aucune adresse rattachée.")
 
         print("Cours suivis :")
-        if hasattr(student, 'courses') and student.courses:
-            for course in student.courses:
+        courses = getattr(student, 'courses_taken', getattr(student, 'courses', []))
+        if courses:
+            for course in courses:
                 print(f" - {course.name}")
         else:
             print(" - Aucun cours inscrit.")
