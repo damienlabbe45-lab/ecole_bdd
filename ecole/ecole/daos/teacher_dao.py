@@ -157,3 +157,15 @@ class TeacherDao(Dao[Teacher]):
         except Exception as e:
             print(e)
             return False
+
+    def read_all(self) -> list[Teacher]:
+        """Renvoie tous les profs enregistrés en base de données avec leurs cours."""
+        teachers: list[Teacher] = []
+        with Dao.connection.cursor() as cursor:
+            cursor.execute("SELECT id_teacher FROM teacher")
+            records = cursor.fetchall()
+            for record in records:
+                teacher = self.read(record['id_teacher'])
+                if teacher is not None:
+                    teachers.append(teacher)
+        return teachers
