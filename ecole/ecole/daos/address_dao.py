@@ -88,3 +88,15 @@ class AddressDao(Dao[Address]):
         except Exception as e:
             print(e)
             return False
+
+    def read_all(self) -> list[Address]:
+        """Renvoie toutes les adresses enregistrées en base de données."""
+        addresss: list[Address] = []
+        with Dao.connection.cursor() as cursor:
+            cursor.execute("SELECT id_address FROM address")
+            records = cursor.fetchall()
+            for record in records:
+                address = self.read(record['id_address'])
+                if address is not None:
+                    addresss.append(address)
+        return addresss
