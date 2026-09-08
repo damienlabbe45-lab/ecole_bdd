@@ -5,7 +5,6 @@ Classe Dao[Student]
 """
 
 from models.student import Student
-from models.course import Course
 from models.address import Address
 from daos.dao import Dao
 from dataclasses import dataclass
