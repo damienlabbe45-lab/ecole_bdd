@@ -103,3 +103,15 @@ class CourseDao(Dao[Course]):
         except Exception as e:
             print(e)
             return False
+
+    def read_all(self) -> list[Course]:
+        """Renvoie tous les cours enregistrés en base de données avec leurs professeurs et étudiants."""
+        courses: list[Course] = []
+        with Dao.connection.cursor() as cursor:
+            cursor.execute("SELECT id_course FROM course")
+            records = cursor.fetchall()
+            for record in records:
+                course = self.read(record['id_course'])
+                if course is not None:
+                    courses.append(course)
+        return courses
