@@ -40,7 +40,54 @@ class StudentDao(Dao[Student]):
 
         return id_student
 
+    def read(self, id_student: int) -> Optional[Student]:
+        student: Optional[Student] = None
 
+        with Dao.connection.cursor() as cursor:
+            # Requête unique avec JOIN pour récupérer l'étudiant et son adresse
+            cursor.execute(
+                """
+                SELECT p.*, a.street, a.city, a.postal_code
+                FROM student s
+                JOIN person p ON s.id_person = p.id_person
+                LEFT JOIN adress a ON p.id_adress = a.id_adress
+                WHERE s.id_person = %s
+                """,
+                (id_student,)
+            )
+            record_person = cursor.fetchone()
+
+            if record_person is not None:
+                # Instanciation (address est en init=False)
+                student = Student(
+                    record_person['first_name'],
+                    record_person['last_name'],
+                    record_person['age']
+                )
+                student.student_nbr = id_student
+
+                if record_person['street'] is not None:
+                    student.address = Address(
+                        record_person['street'],
+                        record_person['city'],
+                        record_person['postal_code']
+                    )
+
+                # Chargement des cours suivis
+                cursor.execute(
+                    "SELECT id_course FROM takes WHERE id_student=%s",
+                    (id_student,)
+                )
+                takes_records = cursor.fetchall()
+                if takes_records:
+                    from daos.course_dao import CourseDao
+                    course_dao = CourseDao()
+                    for take in takes_records:
+                        course = course_dao.read(take['id_course'])
+                        if course is not None:
+                            student.add_course(course)
+
+        return student
 
     def update(self, course: Student) -> bool:
         """Met à jour en BD l'entité Course correspondant à course, pour y correspondre
