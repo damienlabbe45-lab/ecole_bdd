@@ -56,16 +56,40 @@ class CourseDao(Dao[Course]):
                         course.set_teacher(teacher)
 
                 # 3. Chargement de la liste des élèves inscrits
-                cursor.execute("SELECT student_nbr FROM takes WHERE id_course=%s", (id_course,))
-                takes_records = cursor.fetchall()
-                if takes_records is not None:
-                    from daos.student_dao import StudentDao
-                    student_dao = StudentDao()
-                    for take in takes_records:
-                        student = student_dao.read(take['student_nbr'])
-                        if student is not None:
-                            course.add_student(student)
+                # Dans course_dao.py (méthode read)
+                from models.student import Student
+                from models.address import Address
+                cursor.execute(
+                    """
+                    SELECT s.student_nbr, p.first_name, p.last_name, p.age,
+                           a.id_address, a.street, a.city, a.postal_code
+                    FROM student s
+                    JOIN person p ON s.id_person = p.id_person
+                    JOIN takes t ON s.student_nbr = t.student_nbr
+                    LEFT JOIN address a ON p.id_address = a.id_address
+                    WHERE t.id_course = %s
+                    """,
+                    (id_course,)
+                )
+                student_records = cursor.fetchall()
+                for s_rec in student_records:
+                    student = Student(
+                        s_rec['first_name'],
+                        s_rec['last_name'],
+                        s_rec['age']
+                    )
+                    student.student_nbr = s_rec['student_nbr']
 
+                    if s_rec['street'] is not None:
+                        address = Address(
+                            s_rec['street'],
+                            s_rec['city'],
+                            s_rec['postal_code']
+                        )
+                        address.id = s_rec['id_address']
+                        student.address = address
+
+                    course.add_student(student)
         return course
 
     def update(self, course: Course) -> bool:
