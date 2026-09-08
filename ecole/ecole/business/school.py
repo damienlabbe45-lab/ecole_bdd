@@ -39,17 +39,33 @@ class School:
             AddressDao().create(student.address)
         return StudentDao().create(student)
 
-    def display_courses_list(self) -> None:
+    @staticmethod
+    def display_courses_list() -> None:
         """Affichage de la liste des cours depuis la BD avec :
         - leur enseignant
         - la liste des élèves le suivant"""
         for course in CourseDao().read_all():
-            print(f"cours de {course}")
-            for student in course.students_taking_it:
-                print(f"- {student}")
-            print("\n \n")
+            print(course)
 
+    @staticmethod
+    def display_teachers_list() -> None:
+        """Affichage de la liste des profs depuis la BD avec
+        - leurs cours"""
 
+        for teacher in TeacherDao().read_all():
+            print(teacher)
+
+    @staticmethod
+    def display_students_list() -> None:
+        """Affichage de la liste des étudiants depuis la BD avec
+        - leurs cours"""
+        for student in StudentDao().read_all():
+            print(student)
+
+    def display_address_list(self) -> None:
+        """Affiche la liste des addresses depuis la BD"""
+        for address in AddressDao().read_all():
+            print(address)
 
     @staticmethod
     def get_course_by_id(id_course: int) -> Optional[Course]:
