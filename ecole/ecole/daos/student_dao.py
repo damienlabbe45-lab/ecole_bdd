@@ -89,30 +89,43 @@ class StudentDao(Dao[Student]):
 
         return student
 
-    def update(self, course: Student) -> bool:
-        """Met à jour en BD l'entité Course correspondant à course, pour y correspondre
+    def update(self, student: Student) -> bool:
+        """Met à jour en BD l'entité Student correspondant à student, pour y correspondre
 
-        :param course: cours déjà mis à jour en mémoire
+        :param student: étudiant déjà mis à jour en mémoire
         :return: True si la mise à jour a pu être réalisée
         """
-        ...
+        address_id = student.address.id if student.address is not None else None
         try:
             with Dao.connection.cursor() as cursor:
-                if Course.teacher is not None:
-                    cursor.execute(
-                        "UPDATE course SET name=%s, start_date=%s, end_date=%s, id_teacher= %s WHERE id_course=%s",
-                        Course.name, Course.start_date, Course.end_date, Course.teacher.id)
-                else:
-                    cursor.execute(
-                        "UPDATE course SET name=%s, start_date=%s, end_date=%s WHERE id_course=%s",
-                        Course.name, Course.start_date, Course.end_date)
+                # 1. Mise à jour des informations personnelles
+                cursor.execute(
+                    """
+                    UPDATE person p
+                    JOIN student s ON p.id_person = s.id_person
+                    SET p.first_name = %s, p.last_name = %s, p.age = %s, p.id_adress = %s
+                    WHERE s.id_person = %s
+                    """,
+                    (student.first_name, student.last_name, student.age, address_id, student.student_nbr)
+                )
+
+                # 2. Resynchronisation des cours suivis (takes)
+                cursor.execute("DELETE FROM takes WHERE id_student = %s", (student.student_nbr,))
+                for course in student.courses_taken:
+                    if course.id is not None:
+                        cursor.execute(
+                            "INSERT INTO takes (id_student, id_course) VALUES (%s, %s)",
+                            (student.student_nbr, course.id)
+                        )
+
+                Dao.connection.commit()
             return True
         except Exception as e:
             print(e)
             return False
 
-    def delete(self, course: Course) -> bool:
-        """Supprime en BD l'entité Course correspondant à course
+    def delete(self, student: Student) -> bool:
+        """Supprime en BD l'entité Student correspondant à course
 
         :param course: cours dont l'entité Course correspondante est à supprimer
         :return: True si la suppression a pu être réalisée
@@ -120,7 +133,23 @@ class StudentDao(Dao[Student]):
         ...
         try:
             with Dao.connection.cursor() as cursor:
-                cursor.execute("DELETE FROM course WHERE id_course=%s", (course.id,))
+                cursor.execute(
+                    """
+                    SELECT p.id_person, p.id_adress 
+                    FROM person p 
+                    JOIN student s ON p.id_person = s.id_person 
+                    WHERE s.id_person = %s
+                    """,
+                    (student.student_nbr,)
+                )
+                record = cursor.fetchone()
+                id_adress = record["id_adress"]
+                id_person = record["id_person"]
+                cursor.execute("DELETE FROM takes WHERE id_student=%s", (student.student_nbr,))
+                cursor.execute("DELETE FROM student WHERE id_student=%s", (student.student_nbr,))
+                cursor.execute("DELETE FROM person WHERE id_person=%s", (id_person,))
+                cursor.execute("DELETE FROM adress WHERE id_adress=%s", (id_adress,))
+                Dao.connection.commit()
             return True
         except Exception as e:
             print(e)
