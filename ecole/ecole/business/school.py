@@ -43,12 +43,13 @@ class School:
         """Affichage de la liste des cours depuis la BD avec :
         - leur enseignant
         - la liste des élèves le suivant"""
-        courses = CourseDao().read_all()
-        for course in courses:
+        for course in CourseDao().read_all():
             print(f"cours de {course}")
             for student in course.students_taking_it:
                 print(f"- {student}")
-            print()
+            print("\n \n")
+
+
 
     @staticmethod
     def get_course_by_id(id_course: int) -> Optional[Course]:
