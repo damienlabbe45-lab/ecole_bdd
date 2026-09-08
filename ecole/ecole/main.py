@@ -6,7 +6,6 @@ Application de gestion d'une école
 """
 
 from business.school import School
-from daos.student_dao import StudentDao
 
 
 def main() -> None:
@@ -16,41 +15,19 @@ def main() -> None:
 Bienvenue dans notre école
 --------------------------""")
 
-    school: School = School()
+    school = School()
 
-    # Initialisation et insertion en base de données
-    #school.init_db()
-
-    # Affichage de la liste des cours (lus directement depuis la BD)
+    print("\n=== LISTE DES COURS ===")
     school.display_courses_list()
 
-    # Lecture ponctuelle par id depuis la BD
-    print(school.get_course_by_id(1))
-    print(school.get_course_by_id(2))
-    print(school.get_course_by_id(9))
-    # --- Test StudentDao ---
-    print("\n--- Test récupération des élèves ---")
-    student_dao = StudentDao()
+    print("\n=== LISTE DES ENSEIGNANTS ===")
+    school.display_teachers_list()
 
-    # Lecture d'un élève par son ID (ex: 1)
-    student = student_dao.read(1)
+    print("\n=== LISTE DES ÉTUDIANTS ===")
+    school.display_students_list()
 
-    if student:
-        print(f"Élève trouvé : {student.first_name} {student.last_name} ({student.age} ans)")
-        if student.address:
-            print(f"Adresse : {student.address.street}, {student.address.postal_code} {student.address.city}")
-        else:
-            print("Aucune adresse rattachée.")
-
-        print("Cours suivis :")
-        courses = getattr(student, 'courses_taken', getattr(student, 'courses', []))
-        if courses:
-            for course in courses:
-                print(f" - {course.name}")
-        else:
-            print(" - Aucun cours inscrit.")
-    else:
-        print("Élève non trouvé.")
+    print("\n=== LISTE DES ADRESSES ===")
+    school.display_address_list()
 
 
 if __name__ == '__main__':
