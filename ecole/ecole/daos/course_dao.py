@@ -96,6 +96,7 @@ class CourseDao(Dao[Course]):
         ...
         try:
             with Dao.connection.cursor() as cursor:
+                cursor.execute("DELETE FROM takes WHERE id_course=%s", (course.id,))
                 cursor.execute("DELETE FROM course WHERE id_course=%s", (course.id,))
                 Dao.connection.commit()
             return True
