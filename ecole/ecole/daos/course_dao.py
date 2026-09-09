@@ -36,7 +36,7 @@ def course_read(connection: Connection, id_course: int) -> str | None:
                     c.name, ' (', c.start_date, ' – ', c.end_date, '), enseigné par ',
                     COALESCE(CONCAT(p_t.first_name, ' ', p_t.last_name), "pas d'enseignant affecté"),
                     IF(COUNT(p_s.id_person) > 0, CONCAT('\nÉlèves :\n  - ', GROUP_CONCAT(CONCAT(p_s.first_name, ' ',
-                    p_s.last_name) SEPARATOR '\n  - ')),  '\n  pas d\'étudiant'
+                    p_s.last_name) SEPARATOR '\n  - ')),  "\n  pas d'étudiant"
                     )
                 )
                 FROM course c
@@ -97,7 +97,7 @@ def course_read_all(connection: Connection) -> list[str]:
             c.name, ' (', c.start_date, ' – ', c.end_date, '), enseigné par ',
             COALESCE(CONCAT(p_t.first_name, ' ', p_t.last_name), "pas d'enseignant affecté"),
             IF(COUNT(p_s.id_person) > 0, CONCAT('\nÉlèves :\n  - ', GROUP_CONCAT(CONCAT(p_s.first_name, ' ',
-                p_s.last_name) SEPARATOR '\n  - ')),  '\n  pas d\'étudiant'
+                p_s.last_name) SEPARATOR '\n  - ')),  "\n  pas d'étudiant"
             )
         )
         FROM course c
