@@ -39,61 +39,26 @@ class StudentDao(Dao[Student]):
 
         return id_student
 
-    def read(self, student_nbr: int) -> Optional[Student]:
-        student: Optional[Student] = None
-
-        with Dao.connection.cursor() as cursor:
-            # 1. Récupération des infos de l'étudiant, sa personne et son adresse
-            cursor.execute(
-                """
-                SELECT s.student_nbr, p.first_name, p.last_name, p.age,
-                       a.id_address, a.street, a.city, a.postal_code
-                FROM student s
-                JOIN person p ON s.id_person = p.id_person
-                LEFT JOIN address a ON p.id_address = a.id_address
-                WHERE s.student_nbr = %s
-                """,
-                (student_nbr,)
-            )
-            record = cursor.fetchone()
-
-            if record is not None:
-                student = Student(
-                    record[1],
-                    record[2],
-                    record[3]
-                )
-                student.student_nbr = record[0]
-
-                if record[5] is not None:
-                    address = Address(
-                        record[5],
-                        record[6],
-                        record[7]
+    def read(self, student_nbr: int) -> str | None:
+        query = """
+                    SELECT CONCAT(
+                        c.name, ' (', c.start_date, ' – ', c.end_date, '), enseigné par ',
+                        COALESCE(CONCAT(p_t.first_name, ' ', p_t.last_name), "pas d'enseignant affecté"),
+                        IF(COUNT(p_s.id_person) > 0, CONCAT('\nÉlèves :\n  - ', GROUP_CONCAT(CONCAT(p_s.first_name, 
+                        ' ', p_s.last_name) SEPARATOR '\n  - ')), '\n  pas d\'étudiant')
                     )
-                    address.id = record[4]
-                    student.address = address
-                cursor.execute(
-                    """
-                    SELECT c.id_course, c.name, c.start_date, c.end_date
                     FROM course c
-                    JOIN takes t ON c.id_course = t.id_course
-                    WHERE t.student_nbr = %s
-                    """,
-                    (student_nbr,)
-                )
-                from models.course import Course
-                course_records = cursor.fetchall()
-                for c_rec in course_records:
-                    course = Course(
-                        c_rec[1],
-                        c_rec[2],
-                        c_rec[3]
-                    )
-                    course.id = c_rec[0]
-                    student.add_course(course)
-
-        return student
+                    LEFT JOIN teacher t ON c.id_teacher = t.id_teacher
+                    LEFT JOIN person p_t ON t.id_person = p_t.id_person
+                    LEFT JOIN takes tk ON c.id_course = tk.id_course
+                    LEFT JOIN student s ON tk.student_nbr = s.student_nbr
+                    LEFT JOIN person p_s ON s.id_person = p_s.id_person
+                    where s.student_nbr = %s
+                """
+        with self.connection.cursor() as cursor:
+            cursor.execute(query, student_nbr)
+            record = cursor.fetchone()
+            return record[0] if record is not None else None
 
     def update(self, student: Student) -> bool:
         """Met à jour en BD l'entité Student correspondant à student"""

@@ -41,58 +41,29 @@ class TeacherDao(Dao[Teacher]):
 
         return id_teacher
 
-    def read(self, id_teacher: int) -> Optional[Teacher]:
+    def read(self, id_teacher: int) -> None | str:
         """Renvoie le professeur correspondant à id_teacher (ou None)"""
-        teacher: Optional[Teacher] = None
-
-        with Dao.connection.cursor() as cursor:
-            cursor.execute(
+        query = """
+                    SELECT CONCAT(
+                        p.first_name, ' ', p.last_name, ' (', p.age, ' ans)',
+                        IF(a.id_address IS NOT NULL, CONCAT(', ', a.street, ', ', a.postal_code, ' ', a.city), ''),
+                        ', arrivé(e) le ', t.hiring_date,
+                        IF(
+                            COUNT(c.id_course) > 0,
+                            CONCAT('\nCours enseignés :\n  - ', GROUP_CONCAT(c.name SEPARATOR '\n  - ')),
+                            ''
+                        )
+                    )
+                    FROM teacher t
+                    JOIN person p ON t.id_person = p.id_person
+                    LEFT JOIN address a ON p.id_address = a.id_address
+                    LEFT JOIN course c ON t.id_teacher = c.id_teacher
+                    where t.id_teacher = %s
                 """
-                SELECT t.hiring_date, p.first_name, p.last_name, p.age,
-                       a.id_address, a.street, a.city, a.postal_code
-                FROM teacher t
-                JOIN person p ON t.id_person = p.id_person
-                LEFT JOIN address a ON p.id_address = a.id_address
-                WHERE t.id_teacher = %s
-                """,
-                (id_teacher,)
-            )
+        with self.connection.cursor() as cursor:
+            cursor.execute(query, (id_teacher,))
             record = cursor.fetchone()
-
-            if record is not None:
-                teacher = Teacher(
-                    record[1],
-                    record[2],
-                    record[3],
-                    record[0]
-                )
-                teacher.id = id_teacher
-
-                if record[5] is not None:
-                    address = Address(
-                        record[5],
-                        record[6],
-                        record[7]
-                    )
-                    address.id = record[4]
-                    teacher.address = address
-
-                # Chargement des cours (instanciation avec 3 arguments)
-                cursor.execute(
-                    "SELECT id_course, name, start_date, end_date FROM course WHERE id_teacher = %s",
-                    (id_teacher,)
-                )
-                course_records = cursor.fetchall()
-                for c_rec in course_records:
-                    course = Course(
-                        c_rec[1],
-                        c_rec[2],
-                        c_rec[3]
-                    )
-                    course.id = c_rec[0]
-                    teacher.add_course(course)
-
-        return teacher
+            return record[0] if record is not None else None
 
     def add_course(self, teacher: Teacher, course: Course) -> bool:
         """Associe un cours à un enseignant dans la table course."""

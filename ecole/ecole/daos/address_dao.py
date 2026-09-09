@@ -30,26 +30,16 @@ class AddressDao(Dao[Address]):
 
         return id_address
 
-    def read(self, id_address: int) -> Optional[Address]:
+    def read(self, id_address: int) -> str | None:
         """Renvoie l'adresse correspondant à id_address (ou None)"""
-        address: Optional[Address] = None
-
-        with Dao.connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT street, city, postal_code FROM address WHERE id_address = %s",
-                (id_address,)
-            )
+        query = """
+                    SELECT CONCAT(street, ', ', postal_code, ' ', city)
+                    FROM address;
+                """
+        with self.connection.cursor() as cursor:
+            cursor.execute(query, id_address)
             record = cursor.fetchone()
-
-            if record is not None:
-                address = Address(
-                    record[0],
-                    record[1],
-                    record[2]
-                )
-                address.id = id_address
-
-        return address
+            return record[0] if record is not None else None
 
     def update(self, address: Address) -> bool:
         """Met à jour l'entité Address en BD"""
