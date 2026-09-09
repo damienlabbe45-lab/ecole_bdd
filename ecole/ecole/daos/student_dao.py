@@ -59,19 +59,19 @@ class StudentDao(Dao[Student]):
 
             if record is not None:
                 student = Student(
-                    record['first_name'],
-                    record['last_name'],
-                    record['age']
+                    record[1],
+                    record[2],
+                    record[3]
                 )
-                student.student_nbr = record['student_nbr']
+                student.student_nbr = record[0]
 
-                if record['street'] is not None:
+                if record[5] is not None:
                     address = Address(
-                        record['street'],
-                        record['city'],
-                        record['postal_code']
+                        record[5],
+                        record[6],
+                        record[7]
                     )
-                    address.id = record['id_address']
+                    address.id = record[4]
                     student.address = address
                 cursor.execute(
                     """
@@ -86,11 +86,11 @@ class StudentDao(Dao[Student]):
                 course_records = cursor.fetchall()
                 for c_rec in course_records:
                     course = Course(
-                        c_rec['name'],
-                        c_rec['start_date'],
-                        c_rec['end_date']
+                        c_rec[1],
+                        c_rec[2],
+                        c_rec[3]
                     )
-                    course.id = c_rec['id_course']
+                    course.id = c_rec[0]
                     student.add_course(course)
 
         return student
@@ -143,8 +143,8 @@ class StudentDao(Dao[Student]):
 
                 cursor.execute("DELETE FROM takes WHERE student_nbr=%s", (student.student_nbr,))
                 cursor.execute("DELETE FROM student WHERE student_nbr=%s", (student.student_nbr,))
-                cursor.execute("DELETE FROM person WHERE id_person=%s", (record["id_person"],))
-                cursor.execute("DELETE FROM address WHERE id_address=%s", (record["id_address"],))
+                cursor.execute("DELETE FROM person WHERE id_person=%s", (record[0],))
+                cursor.execute("DELETE FROM address WHERE id_address=%s", (record[1],))
                 Dao.connection.commit()
             return True
         except Exception as e:

@@ -36,18 +36,18 @@ class AddressDao(Dao[Address]):
 
         with Dao.connection.cursor() as cursor:
             cursor.execute(
-                "SELECT * FROM address WHERE id_address = %s",
+                "SELECT street, city, postal_code FROM address WHERE id_address = %s",
                 (id_address,)
             )
             record = cursor.fetchone()
 
             if record is not None:
                 address = Address(
-                    record['street'],
-                    record['city'],
-                    record['postal_code']
+                    record[0],
+                    record[1],
+                    record[2]
                 )
-                address.id = record['id_address']
+                address.id = id_address
 
         return address
 

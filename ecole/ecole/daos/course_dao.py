@@ -41,17 +41,17 @@ class CourseDao(Dao[Course]):
 
         with Dao.connection.cursor() as cursor:
             # 1. Lecture des informations principales du cours
-            cursor.execute("SELECT * FROM course WHERE id_course=%s", (id_course,))
+            cursor.execute("SELECT name, start_date, end_date, id_teacher FROM course WHERE id_course=%s", (id_course,))
             record = cursor.fetchone()
 
             if record is not None:
-                course = Course(record['name'], record['start_date'], record['end_date'])
-                course.id = record['id_course']
+                course = Course(record[0], record[1], record[2])
+                course.id = id_course
 
                 # 2. Chargement du prof (si présent)
-                if record['id_teacher'] is not None:
+                if record[3] is not None:
                     from daos.teacher_dao import TeacherDao
-                    teacher = TeacherDao().read(record['id_teacher'])
+                    teacher = TeacherDao().read(record[3])
                     if teacher is not None:
                         course.set_teacher(teacher)
 
@@ -74,19 +74,19 @@ class CourseDao(Dao[Course]):
                 student_records = cursor.fetchall()
                 for s_rec in student_records:
                     student = Student(
-                        s_rec['first_name'],
-                        s_rec['last_name'],
-                        s_rec['age']
+                        s_rec[1],
+                        s_rec[2],
+                        s_rec[3]
                     )
-                    student.student_nbr = s_rec['student_nbr']
+                    student.student_nbr = s_rec[0]
 
-                    if s_rec['street'] is not None:
+                    if s_rec[5] is not None:
                         address = Address(
-                            s_rec['street'],
-                            s_rec['city'],
-                            s_rec['postal_code']
+                            s_rec[5],
+                            s_rec[6],
+                            s_rec[7]
                         )
-                        address.id = s_rec['id_address']
+                        address.id = s_rec[4]
                         student.address = address
 
                     course.add_student(student)

@@ -48,7 +48,7 @@ class TeacherDao(Dao[Teacher]):
         with Dao.connection.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT t.id_teacher, t.hiring_date, p.first_name, p.last_name, p.age,
+                SELECT t.hiring_date, p.first_name, p.last_name, p.age,
                        a.id_address, a.street, a.city, a.postal_code
                 FROM teacher t
                 JOIN person p ON t.id_person = p.id_person
@@ -61,20 +61,20 @@ class TeacherDao(Dao[Teacher]):
 
             if record is not None:
                 teacher = Teacher(
-                    record['first_name'],
-                    record['last_name'],
-                    record['age'],
-                    record['hiring_date']
+                    record[1],
+                    record[2],
+                    record[3],
+                    record[0]
                 )
-                teacher.id = record['id_teacher']
+                teacher.id = record[id_teacher]
 
-                if record['street'] is not None:
+                if record[5] is not None:
                     address = Address(
-                        record['street'],
-                        record['city'],
-                        record['postal_code']
+                        record[5],
+                        record[6],
+                        record[7]
                     )
-                    address.id = record['id_address']
+                    address.id = record[4]
                     teacher.address = address
 
                 # Chargement des cours (instanciation avec 3 arguments)
@@ -85,11 +85,11 @@ class TeacherDao(Dao[Teacher]):
                 course_records = cursor.fetchall()
                 for c_rec in course_records:
                     course = Course(
-                        c_rec['name'],
-                        c_rec['start_date'],
-                        c_rec['end_date']
+                        c_rec[1],
+                        c_rec[2],
+                        c_rec[3]
                     )
-                    course.id = c_rec['id_course']
+                    course.id = c_rec[0]
                     teacher.add_course(course)
 
         return teacher
@@ -151,7 +151,7 @@ class TeacherDao(Dao[Teacher]):
 
                 if record:
                     cursor.execute("DELETE FROM teacher WHERE id_teacher = %s", (teacher.id,))
-                    cursor.execute("DELETE FROM person WHERE id_person = %s", (record["id_person"],))
+                    cursor.execute("DELETE FROM person WHERE id_person = %s", (record[0],))
                     Dao.connection.commit()
             return True
         except Exception as e:
@@ -165,7 +165,7 @@ class TeacherDao(Dao[Teacher]):
             cursor.execute("SELECT id_teacher FROM teacher")
             records = cursor.fetchall()
             for record in records:
-                teacher = self.read(record['id_teacher'])
+                teacher = self.read(record[0])
                 if teacher is not None:
                     teachers.append(teacher)
         return teachers

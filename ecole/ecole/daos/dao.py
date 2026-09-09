@@ -7,17 +7,12 @@ Classe abstraite générique Dao[T], dont hérite les classes de DAO de chaque e
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from typing import ClassVar, Optional
-from pymysql.cursors import DictCursor
 from pymysql import Connection, connect
 
 
 @dataclass
 class Dao[T](ABC):
-    connection: ClassVar[Connection] = \
-        connect(host='localhost',
-                        user='root',
-                        database='ecole',
-                        cursorclass=DictCursor)
+    connection: ClassVar[Connection] = connect(host='localhost', user='root', database='ecole')
 
     @abstractmethod
     def create(self, obj: T) -> int:
