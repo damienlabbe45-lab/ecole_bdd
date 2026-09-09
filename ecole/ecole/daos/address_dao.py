@@ -1,87 +1,96 @@
 # -*- coding: utf-8 -*-
 
 """
-requêtes sql de Adress
+Requêtes SQL de Address
 """
-from pymysql import Connection
+from typing import Callable
+from sqlalchemy import text
+
+from utils.async_session_maker import CustomAsyncSession
 
 
-def address_create(connection: Connection, street: str, city: str, postal_code: str) -> int:
-    """Crée en BD l'entité Address correspondant à l'adresse"""
-    id_address: int
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "INSERT IGNORE INTO address (street, city, postal_code) VALUES (%s, %s, %s)",
-                (street, city, postal_code)
+async def address_create(
+    connection: Callable[[], CustomAsyncSession],
+    street: str,
+    city: str,
+    postal_code: str,
+) -> int:
+    """Crée en BD l'entité Address correspondant à l'adresse."""
+    query = text(
+        "INSERT IGNORE INTO address (street, city, postal_code) "
+        "VALUES (:street, :city, :postal_code)"
+    )
+    async with connection() as session:
+        async with session.begin():
+            res = await session.execute(
+                query,
+                {"street": street, "city": city, "postal_code": postal_code},
             )
-            id_address = cursor.lastrowid
-            connection.commit()
-    except Exception as e:
-        print(e)
-        id_address = 0
-
-    return id_address
+            return res.lastrowid or 0
 
 
-def address_read(connection: Connection, id_address: int) -> str | None:
-    """Renvoie l'adresse correspondant à id_address (ou None)"""
-    query = """
-                SELECT CONCAT(street, ', ', postal_code, ' ', city)
-                FROM address
-                where id_address = %s;
-            """
-    with connection.cursor() as cursor:
-        cursor.execute(query, (id_address,))
-        record = cursor.fetchone()
-    return record[0] if record is not None else None
+async def address_read(
+    connection: Callable[[], CustomAsyncSession], id_address: int
+) -> str | None:
+    """Renvoie l'adresse correspondant à id_address (ou None)."""
+    query = text(
+        "SELECT CONCAT(street, ', ', postal_code, ' ', city) "
+        "FROM address WHERE id_address = :id_address"
+    )
+    async with connection() as session:
+        return await session.scalar(query, {"id_address": id_address})
 
 
-def address_update(connection: Connection, street: str, city: str, postal_code: str, id_address: int) -> bool:
-    """Met à jour l'entité Address en BD"""
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                UPDATE address 
-                SET street = %s, city = %s, postal_code = %s 
-                WHERE id_address = %s
-                """,
-                (street, city, postal_code, id_address)
+async def address_update(
+    connection: Callable[[], CustomAsyncSession],
+    street: str,
+    city: str,
+    postal_code: str,
+    id_address: int,
+) -> bool:
+    """Met à jour l'entité Address en BD."""
+    query = text(
+        "UPDATE address "
+        "SET street = :street, city = :city, postal_code = :postal_code "
+        "WHERE id_address = :id_address"
+    )
+    async with connection() as session:
+        async with session.begin():
+            res = await session.execute(
+                query,
+                {
+                    "street": street,
+                    "city": city,
+                    "postal_code": postal_code,
+                    "id_address": id_address,
+                },
             )
-            connection.commit()
-        return True
-    except Exception as e:
-        print(e)
-        return False
+            return res.rowcount > 0
 
 
-def address_delete(connection: Connection, id_address: int) -> bool:
-    """Supprime l'entité Address en BD"""
-    try:
-        with connection.cursor() as cursor:
-            # 1. Libérer la référence dans person pour éviter le conflit de clé étrangère
-            cursor.execute(
-                "UPDATE person SET id_address = NULL WHERE id_address = %s",
-                (id_address,)
+async def address_delete(
+    connection: Callable[[], CustomAsyncSession], id_address: int
+) -> bool:
+    """Supprime l'entité Address en BD."""
+    async with connection() as session:
+        async with session.begin():
+            # 1. Libérer la référence dans person
+            await session.execute(
+                text("UPDATE person SET id_address = NULL WHERE id_address = :id_address"),
+                {"id_address": id_address},
             )
-            # 2. supprimer l'adresse
-            cursor.execute(
-                 "DELETE FROM address WHERE id_address = %s", (id_address,)
+            # 2. Supprimer l'adresse
+            res = await session.execute(
+                text("DELETE FROM address WHERE id_address = :id_address"),
+                {"id_address": id_address},
             )
-            connection.commit()
-        return True
-    except Exception as e:
-        print(e)
-        return False
+            return res.rowcount > 0
 
 
-def address_read_all(connection: Connection) -> list[str]:
+async def address_read_all(
+    connection: Callable[[], CustomAsyncSession]
+) -> list[str]:
     """Récupère chaque adresse sous forme d'une chaîne texte unique formatée par la BD."""
-    query = """
-        SELECT CONCAT(street, ', ', postal_code, ' ', city)
-        FROM address;
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(query)
-    return [row[0] for row in cursor.fetchall()]
+    query = text("SELECT CONCAT(street, ', ', postal_code, ' ', city) FROM address")
+    async with connection() as session:
+        return await session.scalars(query)

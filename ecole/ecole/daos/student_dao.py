@@ -1,42 +1,59 @@
 # -*- coding: utf-8 -*-
 
 """
-requêtes sql de student
+Requêtes SQL de Student
 """
-from pymysql import Connection
+from typing import Callable
+from sqlalchemy import text
+
+from utils.async_session_maker import CustomAsyncSession
 
 
-def student_create(connection: Connection, first_name: str, last_name: str, age: int, address_id: int | None) -> int:
-    id_student: int = 0
-    try:
-        with connection.cursor() as cursor:
+async def student_create(
+    connection: Callable[[], CustomAsyncSession],
+    first_name: str,
+    last_name: str,
+    age: int,
+    address_id: int | None,
+) -> int:
+    """Crée en BD l'entité Student et la Person associée."""
+    async with connection() as session:
+        async with session.begin():
             # 1. Insertion dans person
-            cursor.execute(
-                "INSERT IGNORE INTO person (first_name, last_name, age, id_address) VALUES (%s, %s, %s, %s)",
-                (first_name, last_name, age, address_id)
-                )
-            id_person = cursor.lastrowid
+            res = await session.execute(
+                text(
+                    "INSERT IGNORE INTO person (first_name, last_name, age, id_address) "
+                    "VALUES (:first_name, :last_name, :age, :address_id)"
+                ),
+                {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "age": age,
+                    "address_id": address_id,
+                },
+            )
+            id_person = res.lastrowid or 0
 
             # 2. Insertion dans student
-            # à modifier pour créer l'autoincrement en base de donnée directement
-            cursor.execute(
-                "INSERT IGNORE INTO student (student_nbr, id_person) VALUES (%s, %s)",
-                (id_person, id_person)
+            if id_person:
+                await session.execute(
+                    text(
+                        "INSERT IGNORE INTO student (student_nbr, id_person) "
+                        "VALUES (:student_nbr, :id_person)"
+                    ),
+                    {"student_nbr": id_person, "id_person": id_person},
                 )
-            id_student = id_person
-            connection.commit()
-    except Exception as e:
-        print(e)
-        id_student = 0
-
-    return id_student
+            return id_person
 
 
-def student_read(connection: Connection, student_nbr: int) -> str | None:
-    query = """
+async def student_read(
+    connection: Callable[[], CustomAsyncSession], student_nbr: int
+) -> str | None:
+    """Renvoie l'étudiant correspondant à student_nbr (ou None)."""
+    query = text("""
         SELECT CONCAT(
             p.first_name, ' ', p.last_name, ' (', p.age, ' ans)',
-                IF(a.id_address IS NOT NULL, CONCAT(', ', a.street, ', ', a.postal_code, ' ', a.city), ''),
+            IF(a.id_address IS NOT NULL, CONCAT(', ', a.street, ', ', a.postal_code, ' ', a.city), ''),
             ', n° étudiant : ', s.student_nbr, ',',
             IF(
                 COUNT(c.id_course) > 0,
@@ -49,85 +66,108 @@ def student_read(connection: Connection, student_nbr: int) -> str | None:
         LEFT JOIN address a ON p.id_address = a.id_address
         LEFT JOIN takes t ON s.student_nbr = t.student_nbr
         LEFT JOIN course c ON t.id_course = c.id_course
-        WHERE s.student_nbr = %s
+        WHERE s.student_nbr = :student_nbr
         GROUP BY s.student_nbr;
-            """
-    with connection.cursor() as cursor:
-        cursor.execute(query, (student_nbr,))
-        record = cursor.fetchone()
-    return record[0] if record is not None else None
+    """)
+    async with connection() as session:
+        return await session.scalar(query, {"student_nbr": student_nbr})
 
 
-def student_update(
-        connection: Connection, first_name: str, last_name: str, age: int, address_id: int | None, student_nbr: int,
-        course_id: int | None) -> bool:
-    """Met à jour en BD l'entité Student correspondant à student"""
-    try:
-        with connection.cursor() as cursor:
-            # 1. Mise à jour des informations personnelles
-            cursor.execute(
-                """
-                UPDATE person p
-                JOIN student s ON p.id_person = s.id_person
-                SET p.first_name = %s, p.last_name = %s, p.age = %s, p.id_address = %s
-                WHERE s.student_nbr = %s
-                """,
-                (first_name, last_name, age, address_id, student_nbr)
+async def student_update(
+    connection: Callable[[], CustomAsyncSession],
+    first_name: str,
+    last_name: str,
+    age: int,
+    address_id: int | None,
+    student_nbr: int,
+    course_id: int | None,
+) -> bool:
+    """Met à jour en BD l'entité Student correspondant à student."""
+    async with connection() as session:
+        async with session.begin():
+            res = await session.execute(
+                text("""
+                    UPDATE person p
+                    JOIN student s ON p.id_person = s.id_person
+                    SET p.first_name = :first_name, p.last_name = :last_name, p.age = :age, p.id_address = :address_id
+                    WHERE s.student_nbr = :student_nbr
+                """),
+                {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "age": age,
+                    "address_id": address_id,
+                    "student_nbr": student_nbr,
+                },
             )
             if course_id is not None:
-                cursor.execute("""""DELETE FROM takes where student_nbr = %s and id_course = %s""",
-                               (student_nbr, course_id))
-            connection.commit()
-        return True
-    except Exception as e:
-        print(e)
-        return False
+                await session.execute(
+                    text("DELETE FROM takes WHERE student_nbr = :student_nbr AND id_course = :course_id"),
+                    {"student_nbr": student_nbr, "course_id": course_id},
+                )
+            return res.rowcount > 0
 
 
-def create_student_takes(connection: Connection, student_nbr: int, course_id: int) -> bool:
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("""INSERT IGNORE INTO takes (student_nbr, id_course) VALUES (%s, %s)""",
-                           (student_nbr, course_id))
-            connection.commit()
-        return True
-    except Exception as e:
-        print(e)
-        return False
-
-
-def student_delete(connection: Connection, student_nbr: int) -> bool:
-    """Supprime en BD l'entité Student correspondant à student"""
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT p.id_person, p.id_address 
-                FROM person p 
-                JOIN student s ON p.id_person = s.id_person 
-                WHERE s.student_nbr = %s
-                """,
-                (student_nbr,)
+async def create_student_takes(
+    connection: Callable[[], CustomAsyncSession],
+    student_nbr: int,
+    course_id: int,
+) -> bool:
+    """Associe un étudiant à un cours dans la table takes."""
+    async with connection() as session:
+        async with session.begin():
+            res = await session.execute(
+                text("INSERT IGNORE INTO takes (student_nbr, id_course) VALUES (:student_nbr, :course_id)"),
+                {"student_nbr": student_nbr, "course_id": course_id},
             )
-            record = cursor.fetchone()
+            return res.rowcount > 0
+
+
+async def student_delete(
+    connection: Callable[[], CustomAsyncSession], student_nbr: int
+) -> bool:
+    """Supprime en BD l'entité Student correspondant à student."""
+    async with connection() as session:
+        async with session.begin():
+            res = await session.execute(
+                text("""
+                    SELECT p.id_person, p.id_address 
+                    FROM person p 
+                    JOIN student s ON p.id_person = s.id_person 
+                    WHERE s.student_nbr = :student_nbr
+                """),
+                {"student_nbr": student_nbr},
+            )
+            record = res.fetchone()
 
             if record:
-                cursor.execute("DELETE FROM takes WHERE student_nbr=%s", (student_nbr,))
-                cursor.execute("DELETE FROM student WHERE student_nbr=%s", (student_nbr,))
-                cursor.execute("DELETE FROM person WHERE id_person=%s", (record[0],))
-                if record[1]:
-                    cursor.execute("DELETE FROM address WHERE id_address=%s", (record[1],))
-                connection.commit()
+                id_person, id_address = record[0], record[1]
+                await session.execute(
+                    text("DELETE FROM takes WHERE student_nbr = :student_nbr"),
+                    {"student_nbr": student_nbr},
+                )
+                await session.execute(
+                    text("DELETE FROM student WHERE student_nbr = :student_nbr"),
+                    {"student_nbr": student_nbr},
+                )
+                await session.execute(
+                    text("DELETE FROM person WHERE id_person = :id_person"),
+                    {"id_person": id_person},
+                )
+                if id_address:
+                    await session.execute(
+                        text("DELETE FROM address WHERE id_address = :id_address"),
+                        {"id_address": id_address},
+                    )
                 return True
             return False
-    except Exception as e:
-        print(e)
-        return False
 
 
-def student_read_all(connection: Connection) -> list[str]:
+async def student_read_all(
+    connection: Callable[[], CustomAsyncSession]
+) -> list[str]:
     """Récupère chaque étudiant sous forme d'une chaîne texte unique formatée par la BD."""
-    query = """
+    query = text("""
         SELECT CONCAT(
             p.first_name, ' ', p.last_name, ' (', p.age, ' ans)',
             IF(a.id_address IS NOT NULL, CONCAT(', ', a.street, ', ', a.postal_code, ' ', a.city), ''),
@@ -144,7 +184,6 @@ def student_read_all(connection: Connection) -> list[str]:
         LEFT JOIN takes t ON s.student_nbr = t.student_nbr
         LEFT JOIN course c ON t.id_course = c.id_course
         GROUP BY s.student_nbr;
-    """
-    with connection.cursor() as cursor:
-        cursor.execute(query)
-    return [row[0] for row in cursor.fetchall()]
+    """)
+    async with connection() as session:
+        return await session.scalars(query)
