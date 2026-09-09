@@ -51,10 +51,10 @@ class CourseDao(Dao[Course]):
                     LEFT JOIN takes tk ON c.id_course = tk.id_course
                     LEFT JOIN student s ON tk.student_nbr = s.student_nbr
                     LEFT JOIN person p_s ON s.id_person = p_s.id_person
-                    GROUP BY c.id_course;
+                    where c.id_course = %s;
                 """
         with self.connection.cursor() as cursor:
-            cursor.execute(query)
+            cursor.execute(query, id_course)
             record = cursor.fetchone()
             return record[0] if record is not None else None
 
