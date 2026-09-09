@@ -25,7 +25,7 @@ class CourseDao(Dao[Course]):
                 cursor.execute(
                     "INSERT IGNORE INTO course (name, start_date, end_date, id_teacher) VALUES (%s, %s, %s, %s)",
                     (course.name, course.start_date, course.end_date, teacher_id))
-                id_course = cursor.lastrowid()
+                id_course = cursor.lastrowid
                 course.id = id_course
                 Dao.connection.commit()
         except Exception as e:
@@ -128,14 +128,24 @@ class CourseDao(Dao[Course]):
             print(e)
             return False
 
-    def read_all(self) -> list[Course]:
-        """Renvoie tous les cours enregistrés en base de données avec leurs professeurs et étudiants."""
-        courses: list[Course] = []
-        with Dao.connection.cursor() as cursor:
-            cursor.execute("SELECT id_course FROM course")
-            records = cursor.fetchall()
-            for record in records:
-                course = self.read(record['id_course'])
-                if course is not None:
-                    courses.append(course)
-        return courses
+    # daos/course_dao.py
+
+    def read_all(self) -> list[tuple]:
+        """Récupère tous les cours avec leur prof et leurs élèves sous forme de données brutes."""
+        with self.connection.cursor() as cursor:
+            cursor.execute("""
+            SELECT 
+                c.name AS cours,
+                c.start_date,
+                c.end_date,
+                CONCAT(p_t.first_name, ' ', p_t.last_name) AS enseignant,
+                GROUP_CONCAT(CONCAT(p_s.first_name, ' ', p_s.last_name) SEPARATOR ', ') AS eleves
+            FROM course c
+            LEFT JOIN teacher t ON c.id_teacher = t.id_teacher
+            LEFT JOIN person p_t ON t.id_person = p_t.id_person
+            LEFT JOIN takes tk ON c.id_course = tk.id_course
+            LEFT JOIN student s ON tk.student_nbr = s.student_nbr
+            LEFT JOIN person p_s ON s.id_person = p_s.id_person
+            GROUP BY c.id_course;
+        """)
+            return cursor.fetchall()

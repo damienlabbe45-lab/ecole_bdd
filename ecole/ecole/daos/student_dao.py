@@ -23,7 +23,7 @@ class StudentDao(Dao[Student]):
                     "INSERT IGNORE INTO person (first_name, last_name, age, id_address) VALUES (%s, %s, %s, %s)",
                     (student.first_name, student.last_name, student.age, address_id)
                 )
-                id_person = cursor.lastrowid()
+                id_person = cursor.lastrowid
 
                 # 2. Insertion dans student
                 cursor.execute(
@@ -151,14 +151,20 @@ class StudentDao(Dao[Student]):
             print(e)
             return False
 
-    def read_all(self) -> list[Student]:
-        """Renvoie tous les étudiants enregistrés en base de données avec leurs cours."""
-        students: list[Student] = []
-        with Dao.connection.cursor() as cursor:
-            cursor.execute("SELECT student_nbr FROM student")
-            records = cursor.fetchall()
-            for record in records:
-                student = self.read(record['student_nbr'])
-                if student is not None:
-                    students.append(student)
-        return students
+    def read_all(self) -> list[tuple]:
+        """Récupère tous les étudiants avec leur adresse et leurs cours sous forme de données brutes."""
+        with self.connection.cursor() as cursor:
+            cursor.execute("""
+            SELECT 
+                s.student_nbr,
+                CONCAT(p.first_name, ' ', p.last_name) AS etudiant,
+                CONCAT(a.street, ', ', a.postal_code, ' ', a.city) AS adresse,
+                GROUP_CONCAT(c.name SEPARATOR ', ') AS cours_suivis
+            FROM student s
+            JOIN person p ON s.id_person = p.id_person
+            LEFT JOIN address a ON p.id_address = a.id_address
+            LEFT JOIN takes t ON s.student_nbr = t.student_nbr
+            LEFT JOIN course c ON t.id_course = c.id_course
+            GROUP BY s.student_nbr;
+        """)
+            return cursor.fetchall()
