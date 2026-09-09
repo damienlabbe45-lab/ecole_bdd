@@ -130,16 +130,16 @@ class CourseDao(Dao[Course]):
 
     # daos/course_dao.py
 
-    def read_all(self) -> list[tuple]:
-        """Récupère tous les cours avec leur prof et leurs élèves sous forme de données brutes."""
-        with self.connection.cursor() as cursor:
-            cursor.execute("""
-            SELECT 
-                c.name AS cours,
-                c.start_date,
-                c.end_date,
-                CONCAT(p_t.first_name, ' ', p_t.last_name) AS enseignant,
-                GROUP_CONCAT(CONCAT(p_s.first_name, ' ', p_s.last_name) SEPARATOR ', ') AS eleves
+    def read_all(self) -> list[str]:
+        """Récupère chaque cours sous forme d'une chaîne texte unique formatée par la BD."""
+        query = """
+            SELECT CONCAT(
+                c.name, ' (', c.start_date, ' – ', c.end_date, '), enseigné par ',
+                COALESCE(CONCAT(p_t.first_name, ' ', p_t.last_name), "pas d'enseignant affecté"),
+                IF(COUNT(p_s.id_person) > 0, CONCAT('\nÉlèves :\n  - ', GROUP_CONCAT(CONCAT(p_s.first_name, ' ',
+                 p_s.last_name) SEPARATOR '\n  - ')),  '\n  pas d\'étudiant'
+                )
+            )
             FROM course c
             LEFT JOIN teacher t ON c.id_teacher = t.id_teacher
             LEFT JOIN person p_t ON t.id_person = p_t.id_person
@@ -147,5 +147,7 @@ class CourseDao(Dao[Course]):
             LEFT JOIN student s ON tk.student_nbr = s.student_nbr
             LEFT JOIN person p_s ON s.id_person = p_s.id_person
             GROUP BY c.id_course;
-        """)
-            return cursor.fetchall()
+        """
+        with self.connection.cursor() as cursor:
+            cursor.execute(query)
+            return [row[0] for row in cursor.fetchall()]

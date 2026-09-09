@@ -151,20 +151,23 @@ class StudentDao(Dao[Student]):
             print(e)
             return False
 
-    def read_all(self) -> list[tuple]:
-        """Récupère tous les étudiants avec leur adresse et leurs cours sous forme de données brutes."""
+    def read_all(self) -> list[str]:
+        """Récupère chaque cours sous forme d'une chaîne texte unique formatée par la BD."""
+        query = """
+            SELECT CONCAT(
+                c.name, ' (', c.start_date, ' – ', c.end_date, '), enseigné par ',
+                COALESCE(CONCAT(p_t.first_name, ' ', p_t.last_name), "pas d'enseignant affecté"),
+                IF(COUNT(p_s.id_person) > 0, CONCAT('\nÉlèves :\n  - ', GROUP_CONCAT(CONCAT(p_s.first_name, 
+                ' ', p_s.last_name) SEPARATOR '\n  - ')), '\n  pas d\'étudiant')
+            )
+            FROM course c
+            LEFT JOIN teacher t ON c.id_teacher = t.id_teacher
+            LEFT JOIN person p_t ON t.id_person = p_t.id_person
+            LEFT JOIN takes tk ON c.id_course = tk.id_course
+            LEFT JOIN student s ON tk.student_nbr = s.student_nbr
+            LEFT JOIN person p_s ON s.id_person = p_s.id_person
+            GROUP BY c.id_course;
+        """
         with self.connection.cursor() as cursor:
-            cursor.execute("""
-            SELECT 
-                s.student_nbr,
-                CONCAT(p.first_name, ' ', p.last_name) AS etudiant,
-                CONCAT(a.street, ', ', a.postal_code, ' ', a.city) AS adresse,
-                GROUP_CONCAT(c.name SEPARATOR ', ') AS cours_suivis
-            FROM student s
-            JOIN person p ON s.id_person = p.id_person
-            LEFT JOIN address a ON p.id_address = a.id_address
-            LEFT JOIN takes t ON s.student_nbr = t.student_nbr
-            LEFT JOIN course c ON t.id_course = c.id_course
-            GROUP BY s.student_nbr;
-        """)
-            return cursor.fetchall()
+            cursor.execute(query)
+            return [row[0] for row in cursor.fetchall()]

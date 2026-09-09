@@ -66,7 +66,7 @@ class TeacherDao(Dao[Teacher]):
                     record[3],
                     record[0]
                 )
-                teacher.id = record[id_teacher]
+                teacher.id = id_teacher
 
                 if record[5] is not None:
                     address = Address(
@@ -158,14 +158,25 @@ class TeacherDao(Dao[Teacher]):
             print(e)
             return False
 
-    def read_all(self) -> list[Teacher]:
-        """Renvoie tous les profs enregistrés en base de données avec leurs cours."""
-        teachers: list[Teacher] = []
-        with Dao.connection.cursor() as cursor:
-            cursor.execute("SELECT id_teacher FROM teacher")
-            records = cursor.fetchall()
-            for record in records:
-                teacher = self.read(record[0])
-                if teacher is not None:
-                    teachers.append(teacher)
-        return teachers
+    def read_all(self) -> list[str]:
+        """Récupère chaque enseignant sous forme d'une chaîne texte unique formatée par la BD."""
+        query = """
+            SELECT CONCAT(
+                p.first_name, ' ', p.last_name, ' (', p.age, ' ans)',
+                IF(a.id_address IS NOT NULL, CONCAT(', ', a.street, ', ', a.postal_code, ' ', a.city), ''),
+                ', arrivé(e) le ', t.hiring_date,
+                IF(
+                    COUNT(c.id_course) > 0,
+                    CONCAT('\nCours enseignés :\n  - ', GROUP_CONCAT(c.name SEPARATOR '\n  - ')),
+                    ''
+                )
+            )
+            FROM teacher t
+            JOIN person p ON t.id_person = p.id_person
+            LEFT JOIN address a ON p.id_address = a.id_address
+            LEFT JOIN course c ON t.id_teacher = c.id_teacher
+            GROUP BY t.id_teacher;
+        """
+        with self.connection.cursor() as cursor:
+            cursor.execute(query)
+            return [row[0] for row in cursor.fetchall()]

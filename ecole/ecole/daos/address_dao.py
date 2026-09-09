@@ -89,14 +89,12 @@ class AddressDao(Dao[Address]):
             print(e)
             return False
 
-    def read_all(self) -> list[Address]:
-        """Renvoie toutes les adresses enregistrées en base de données."""
-        addresss: list[Address] = []
-        with Dao.connection.cursor() as cursor:
-            cursor.execute("SELECT id_address FROM address")
-            records = cursor.fetchall()
-            for record in records:
-                address = self.read(record['id_address'])
-                if address is not None:
-                    addresss.append(address)
-        return addresss
+    def read_all(self) -> list[str]:
+        """Récupère chaque adresse sous forme d'une chaîne texte unique formatée par la BD."""
+        query = """
+            SELECT CONCAT(street, ', ', postal_code, ' ', city)
+            FROM address;
+        """
+        with self.connection.cursor() as cursor:
+            cursor.execute(query)
+            return [row[0] for row in cursor.fetchall()]
