@@ -6,7 +6,7 @@ requêtes sql de student
 from pymysql import Connection
 
 
-def create_student(connection: Connection, first_name: str, last_name: str, age: int, address_id: int | None) -> int:
+def student_create(connection: Connection, first_name: str, last_name: str, age: int, address_id: int | None) -> int:
     id_student: int = 0
     try:
         with connection.cursor() as cursor:
