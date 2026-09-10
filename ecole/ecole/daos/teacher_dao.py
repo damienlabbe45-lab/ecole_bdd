@@ -106,12 +106,12 @@ async def teacher_delete(
     """Supprime l'enseignant, détache ses cours et supprime la fiche personne/adresse liée."""
     async with connection() as session:
         async with session.begin():
-            record = await session.execute("""
+            record = (await session.execute("""
                     SELECT p.id_person, p.id_address 
                     FROM person p 
                     JOIN teacher t ON p.id_person = t.id_person 
                     WHERE t.id_teacher = :id_teacher
-                """, {"id_teacher": id_teacher}).fetchone()
+                """, {"id_teacher": id_teacher})).fetchone()
 
             if record:
                 id_person, id_address = record[0], record[1]
