@@ -140,27 +140,28 @@ INSERT INTO `takes` (`student_nbr`, `id_course`) VALUES
 DELIMITER //
 
 -- 1. Génération automatique du matricule étudiant (Année + Séquence)
-CREATE TRIGGER trg_before_student_insert
-BEFORE INSERT ON student
+DELIMITER //
+
+DROP TRIGGER IF EXISTS trg_after_person_update_address //
+
+CREATE TRIGGER trg_after_person_update_address
+AFTER UPDATE ON person
 FOR EACH ROW
 BEGIN
-    DECLARE current_yr VARCHAR(4);
-    DECLARE max_nbr BIGINT;
-
-    IF NEW.student_nbr IS NULL OR NEW.student_nbr = 0 THEN
-        SET current_yr = CAST(YEAR(CURDATE()) AS CHAR);
-
-        SELECT MAX(student_nbr) INTO max_nbr
-        FROM student
-        WHERE CAST(student_nbr AS CHAR) LIKE CONCAT(current_yr, '%');
-
-        IF max_nbr IS NULL THEN
-            SET NEW.student_nbr = CAST(CONCAT(current_yr, '0001') AS UNSIGNED);
-        ELSE
-            SET NEW.student_nbr = max_nbr + 1;
+    -- On agit uniquement si l'ancienne adresse existait et qu'elle a changé
+    IF OLD.id_address IS NOT NULL AND (NEW.id_address IS NULL OR NEW.id_address <> OLD.id_address) THEN
+        -- S'il ne reste aucune personne avec OLD.id_address dans toute la table
+        IF NOT EXISTS (
+            SELECT 1
+            FROM person
+            WHERE id_address = OLD.id_address
+        ) THEN
+            DELETE FROM address WHERE id_address = OLD.id_address;
         END IF;
     END IF;
 END //
+
+DELIMITER ; //
 
 -- 2. Nettoyage de l'adresse après suppression d'une personne si personne d'autre ne l'utilise
 CREATE TRIGGER trg_after_person_delete_address
