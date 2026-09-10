@@ -1,7 +1,6 @@
 cffi>=2.1.1
 cryptography>=50.0.1
 pycparser>=3.0
-PyMySQL>=1.2.0
 types-PyMySQL>=1.2.0.20260807
 sqlalchemy>=2.0.52
 asyncmy>= 0.2.14
