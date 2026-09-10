@@ -15,7 +15,7 @@ class School:
     """Couche métier de l'application de gestion d'une école."""
 
     connection: sessionmaker[CustomAsyncSession] = sessionmaker(
-        bind=create_async_engine("mysql+asyncmy://root:@localhost/ecole", echo=False),  # nosonar
+        bind=create_async_engine("mysql+asyncmy://root:@localhost/ecole_test", echo=False),
         class_=CustomAsyncSession,
         expire_on_commit=False,
     )
